@@ -155,20 +155,16 @@ def Laplacian(inv_fil,c,k,deltak=Matrix(ZZ,[]),Ord_k=[],deltak1=Matrix(ZZ,[]),Or
     if k==0:
 	Dk1,Ordk1=sparse_boundary_matrix(inv_fil,c,k+1,deltak1,Ord_k1)
 	print (c,k+1)
-	print Dk1
 	if Dk1:
 	   Dk1=Matrix(ZZ,Dk1); 
 	   L=Dk1*(Dk1.transpose())
-	   print L
 	   return L,Matrix(ZZ,[]),Dk1,[],Ordk1
 	else:
 	   return Matrix(ZZ,[]),Matrix(ZZ,[]),Matrix(ZZ,[]),[],[]
     Dk,Ordk=sparse_boundary_matrix(inv_fil,c,k,deltak,Ord_k)
     print (c,k)
-    print Dk;
     Dk1,Ordk1=sparse_boundary_matrix(inv_fil,c,k+1,deltak1,Ord_k1)
     print (c,k+1) 
-    print Dk1
     if not Dk1:
         if not Dk:
             return Matrix(ZZ,[]),Matrix(ZZ,[]),Matrix(ZZ,[]),[],[]
@@ -296,7 +292,7 @@ def Persistent_Homology_maps(k):
 		    HD=Matrix(ZZ,HD)
 		    if  HD.is_square():
 			print 'HD is square';
-			HD=HD.inverse()
+			HD=Matrix(ZZ,HD).inverse()
 		    else:
                         print 'HD=LambdaD|BD|BBD',(LambdaD.nrows(),LambdaD.ncols()),(BD.nrows(),BD.ncols()),(D1D.nrows(),D1D.ncols()),(BBD.nrows(),BBD.ncols());
                         raise ValueError ('ERROR HD NOT SQUARE')
@@ -309,7 +305,8 @@ def Persistent_Homology_maps(k):
                     	D2C=D2D
 		else:
 		    #print 'HD,PD,F1C,LambdaC',(HD.nrows(),HD.ncols()),(PD.nrows(),PD.ncols()), (F1C.nrows(),F1C.ncols()),(LambdaC.nrows(),LambdaC.ncols());
-                    homCD[c-1]=HD*(PD*(F1C*LambdaC))
+                    HOM=HD*(PD*(F1C*LambdaC))
+		    homCD[c-1]=HOM[:HOM.ncols()][:]
                     LambdaC=LambdaD
                     D1C=D1D
                     if D2D!=0:
@@ -319,16 +316,14 @@ def Persistent_Homology_maps(k):
     IDD=Matrix.identity(shape(D1D)[1]);
     HOM=HD*(PD*(IDD*LambdaD))
     if not HOM:
-	print 'fuffa',HOM
 	homCD[c]=HOM[:HOM.ncols()][:]
-    print 'THIS IS THE LAST STEP\n HD\n',HD,'\n PD\n',PD,'\n IDD\n',IDD,'\n LambdaD \n',LambdaD
-    print 'PD*HD',HD*PD*IDD;
+    #print 'THIS IS THE LAST STEP\n HD\n',HD,'\n PD\n',PD,'\n IDD\n',IDD,'\n LambdaD \n',LambdaD
     del D1C,D2C,O1C,O2C,LapD,D1D,D2D,O1D,O2D,LambdaC
     print 'Done.' 
     return homCD
 
 # <codecell>
 
-inv_fil={(0,1):[{1},{2}],(0,2):[{1,2}],(1,1):[{3}],(1,2):[{2,3}],(2,2):[{1,3},{5,6},{5,3},{6,3}],(2,1):[{4},{5},{6}],(2,3):[{1,2,3}]}
+#inv_fil={(0,1):[{1},{2}],(0,2):[{1,2}],(1,1):[{3}],(1,2):[{2,3}],(2,2):[{1,3},{5,6},{5,3},{6,3}],(3,1):[{4},{5},{6}],(2,3):[{1,2,3}]}
 #print inv_fil;
 #D=Persistent_Homology_maps(4)

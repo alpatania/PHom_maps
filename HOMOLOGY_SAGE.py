@@ -67,37 +67,21 @@ def sparse_boundary_matrix_zero(inv_dict,c,k,verbose=False):#c is the filtration
     ordered_simplex_series=pd.Series(ordered_simplex_list,index=range(len(ordered_simplex_list)));
     del ordered_simplex_list;
     bm=zeros((R,C));
-    C_occ=[]
     for i in ordered_simplex_series.index:
         if len(ordered_simplex_series[i])==k:
             for j in ordered_simplex_series.index[i:]:
                 cod=codimension(ordered_simplex_series[i], ordered_simplex_series[j]);
                 if cod==1:
-                    if j-R in C_occ:
-                        if C_occ.count(j-R)%2==0:
-			    #if sum(bm[i,:])!=0:
-				#bm[i,j-R]=-(sum(bm[i,:]));
-			    #else:
-				#bm[i,j-R]=1;
-			    bm[i,j-R]=1;
-                        else:
-			    #if sum(bm[i,:])!=0:
-				#bm[i,j-R]=-(sum(bm[i,:]));
-			    #else:
-                            	#bm[i,j-R]=-1;
-			    bm[i,j-R]=-1;
-                        C_occ.append(j-R)
-                    else:
-			#if sum(bm[i,:])!=0:
-			 #   bm[i,j-R]=-(sum(bm[i,:]));
-			#else:
-                         #   bm[i,j-R]=1;
-			bm[i,j-R]=1;
-                        C_occ.append(j-R)
+		    piu=list(ordered_simplex_series[j]-ordered_simplex_series[i])
+		    s=sorted(ordered_simplex_series[j])
+		    esp=s.index(piu[0])
+		    if esp%2==0:
+		    	bm[i,j-R]=1;
+		    else:
+			bm[i,j-R]=-1;
                     if verbose==True:
                         print (i,j, cod,ordered_simplex_series[i], ordered_simplex_series[j]);
     bm= Matrix(ZZ,bm);
-    del C_occ
     return Matrix(ZZ,bm),Ord
 
 def sparse_boundary_matrix(inv_dict,c,k,deltak=Matrix(ZZ,[]),ordered_ksimplex_list=[]):#where deltak is the kth boundary matrix of c-1
@@ -143,50 +127,44 @@ def sparse_boundary_matrix(inv_dict,c,k,deltak=Matrix(ZZ,[]),ordered_ksimplex_li
     del ordered_ksimplex_list;
     del ordered_simplex_list;
     bm=zeros((len(Ord),C));
-    C_occ=[]
     for i in ordered_simplex_series.index:
         if len(ordered_simplex_series[i])==k:
             for j in ordered_simplex_series.index[i:]:
                 cod=codimension(ordered_simplex_series[i], ordered_simplex_series[j]);
                 if cod==1:
-                    if j-len(Ord) in C_occ:
-                        if C_occ.count(j-len(Ord))%2==0:
-			    #if row_sum_D[i]+sum(bm[i,:])!=0:
-				#bm[i,j-len(Ord)]=-(row_sum_D[i]+sum(bm[i,:]));
-			    #else:
-				#bm[i,j-len(Ord)]=1;
-			    bm[i,j-len(Ord)]=1;
-                        else:
-			    #if row_sum_D[i]+sum(bm[i,:])!=0:
-				#bm[i,j-len(Ord)]=-(row_sum_D[i]+sum(bm[i,:]));
-			    #else:
-                            #	bm[i,j-len(Ord)]=-1;
-			    bm[i,j-len(Ord)]=-1;
-                        C_occ.append(j-len(Ord))
-                    else:
-			#if row_sum_D[i]+sum(bm[i,:])!=0:
-			 #   bm[i,j-len(Ord)]=-(row_sum_D[i]+sum(bm[i,:]));
-			#else:
-                         #   bm[i,j-len(Ord)]=1;
-			bm[i,j-len(Ord)]=1;
-                        C_occ.append(j-len(Ord))
+		    piu=list(ordered_simplex_series[j]-ordered_simplex_series[i])
+		    s=sorted(ordered_simplex_series[j])
+		    esp=s.index(piu[0])
+		    if esp%2==0:
+		    	bm[i,j-len(Ord)]=1;
+		    else:
+			bm[i,j-len(Ord)]=-1;
 		
     if new:
 	bm= Matrix(ZZ,bm);
         BM=bm;
-        del bm,C_occ
+        del bm
     else:
         BM=hstack([D,bm]);
 	BM= Matrix(ZZ,BM);
-        del bm,D,C_occ
+        del bm,D
     return Matrix(ZZ,BM),Ord;
         
     
 def Laplacian(inv_fil,c,k,deltak=Matrix(ZZ,[]),Ord_k=[],deltak1=Matrix(ZZ,[]),Ord_k1=[],save_boundary=True):
+    if k==0:
+	Dk1,Ordk1=sparse_boundary_matrix(inv_fil,c,k+1,deltak1,Ord_k1)
+	if Dk1:
+	   L=(Dk1.transpose())*Dk1
+	   return L,Matrix(ZZ,[]),Dk1,[],Ordk1
+	else:
+	   return Matrix(ZZ,[]),Matrix(ZZ,[]),Matrix(ZZ,[]),[],[]
     Dk,Ordk=sparse_boundary_matrix(inv_fil,c,k,deltak,Ord_k)
     print (c,k)
+    print Dk;
     Dk1,Ordk1=sparse_boundary_matrix(inv_fil,c,k+1,deltak1,Ord_k1)
     print (c,k+1) 
+    print Dk1
     if not Dk1:
         if not Dk:
             return Matrix(ZZ,[]),Matrix(ZZ,[]),Matrix(ZZ,[]),[],[]
@@ -336,7 +314,8 @@ def Persistent_Homology_maps(k):
         O2C=O2D#
     IDD=Matrix.identity(shape(D1D)[1]);
     homCD[c]=HD*(PD*(IDD*LambdaD))
-    print HD,'\n',PD,'\n',IDD,'\n',LambdaD
+    print 'THIS IS THE LAST STEP\n HD\n',HD,'\n PD\n',PD,'\n IDD\n',IDD,'\n LambdaD \n',LambdaD
+    print 'PD*HD',HD*PD*IDD;
     del D1C,D2C,O1C,O2C,LapD,D1D,D2D,O1D,O2D,LambdaC
     print 'Done.' 
     return homCD

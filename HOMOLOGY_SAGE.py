@@ -154,8 +154,12 @@ def sparse_boundary_matrix(inv_dict,c,k,deltak=Matrix(ZZ,[]),ordered_ksimplex_li
 def Laplacian(inv_fil,c,k,deltak=Matrix(ZZ,[]),Ord_k=[],deltak1=Matrix(ZZ,[]),Ord_k1=[],save_boundary=True):
     if k==0:
 	Dk1,Ordk1=sparse_boundary_matrix(inv_fil,c,k+1,deltak1,Ord_k1)
+	print (c,k+1)
+	print Dk1
 	if Dk1:
-	   L=(Dk1.transpose())*Dk1
+	   Dk1=Matrix(ZZ,Dk1); 
+	   L=Dk1*(Dk1.transpose())
+	   print L
 	   return L,Matrix(ZZ,[]),Dk1,[],Ordk1
 	else:
 	   return Matrix(ZZ,[]),Matrix(ZZ,[]),Matrix(ZZ,[]),[],[]
@@ -313,7 +317,10 @@ def Persistent_Homology_maps(k):
         O1C=O1D#
         O2C=O2D#
     IDD=Matrix.identity(shape(D1D)[1]);
-    homCD[c]=HD*(PD*(IDD*LambdaD))
+    HOM=HD*(PD*(IDD*LambdaD))
+    if not HOM:
+	print 'fuffa',HOM
+	homCD[c]=HOM[:HOM.ncols()][:]
     print 'THIS IS THE LAST STEP\n HD\n',HD,'\n PD\n',PD,'\n IDD\n',IDD,'\n LambdaD \n',LambdaD
     print 'PD*HD',HD*PD*IDD;
     del D1C,D2C,O1C,O2C,LapD,D1D,D2D,O1D,O2D,LambdaC

@@ -252,8 +252,7 @@ def Persistent_Homology_maps(k):
     LapC,D1C,D2C,O1C,O2C=Laplacian(inv_fil,0,k)
     LambdaC=( Matrix(LapC )).kernel()
     LambdaC=LambdaC.basis_matrix()
-    print LapC
-    print LambdaC
+    LambdaC=(Matrix(LambdaC)).transpose()
     del LapC
     for c in range(1,n+1):
         print c 
@@ -263,41 +262,47 @@ def Persistent_Homology_maps(k):
                 LambdaD=(Matrix(LapD)).kernel()
 		LambdaD=LambdaD.basis_matrix()
                 LambdaC=(Matrix(LambdaD)).transpose()
+		print 'LambdaD con tutti 0',LambdaD;
                 D1C=D1D
                 if D2D!=0:
                     D2C=D2D
             else:
-                HD= Matrix([[],[]])
-                while HD.is_square()==False:
-                    LD=(Matrix(LapD)).column_space()
-		    LD=LD.basis_matrix();
-                    LambdaD=(Matrix(LapD)).kernel()
-		    LambdaD=(Matrix(LambdaD.basis_matrix())).transpose()
-		    PD=Proiettore(LambdaD)
+                LambdaD=(Matrix(LapD)).kernel()
+		LambdaD=(Matrix(LambdaD.basis_matrix())).transpose()
+		print 'LambdaD',LambdaD;
+		PD=Proiettore(LambdaD)
 
-		    BD=(Matrix(D2D)).column_space()
-		    BD=(BD.basis_matrix()).transpose()
+		BD=(Matrix(D2D)).column_space()
+		BD=(BD.basis_matrix()).transpose()
 
-                    fuffa=(D1D).transpose()
-                    BBD=(Matrix((fuffa))).column_space()
-		    BBD=(BBD.basis_matrix()).transpose()
+                fuffa=(D1D).transpose()
+                BBD=(Matrix((fuffa))).column_space()
+		BBD=(BBD.basis_matrix()).transpose()
 
-                    IDC=eye(shape(D1C)[1]);
-                    if shape(D1D)[1]>shape(D1C)[1]:
-			r=shape(D1D)[1]-shape(D1C)[1]
-                        ZERO=zeros((r,shape(D1C)[1]));
-                        F1C=Matrix(vstack([IDC,ZERO]));
-                    else:
-                        F1C=Matrix(IDC);
+		if D1C:
+		    lentC=shape(D1C)[1];
+		else:
+		    lentC=shape(D2C)[0]
+		if D1D:
+		    lentD=shape(D1D)[1];
+		else:
+		    lentD=shape(D2D)[0]
+                IDC=eye(lentC);
+                if lentD>lentC:
+		   r=lentD-lentC
+                   ZERO=zeros((r,lentC));
+                   F1C=Matrix(vstack([IDC,ZERO]));
+                else:
+                   F1C=Matrix(IDC);
 		    
-                    HD=H(LambdaD,BD,BBD)
-		    HD=Matrix(HD)
-		    if  HD.is_square():
-			print 'HD is square';
-			HD=Matrix(HD).inverse()
-		    else:
-                        print 'HD=LambdaD|BD|BBD',(LambdaD.nrows(),LambdaD.ncols()),(BD.nrows(),BD.ncols()),(D1D.nrows(),D1D.ncols()),(BBD.nrows(),BBD.ncols());
-                        raise ValueError ('ERROR HD NOT SQUARE')
+                HD=H(LambdaD,BD,BBD)
+		HD=Matrix(HD)
+		if  HD.is_square():
+		    print 'HD is square';
+		    HD=Matrix(HD).inverse()
+		else:
+                    print 'HD=LambdaD|BD|BBD',(LambdaD.nrows(),LambdaD.ncols()),(BD.nrows(),BD.ncols()),(D1D.nrows(),D1D.ncols()),(BBD.nrows(),BBD.ncols());
+                    raise ValueError ('ERROR HD NOT SQUARE')
 
 		if not LambdaC:
 		    homCD[c-1]=Matrix([])
@@ -315,7 +320,11 @@ def Persistent_Homology_maps(k):
                   	  D2C=D2D
         O1C=O1D#
         O2C=O2D#
-    IDD=Matrix.identity(shape(D1D)[1]);
+    if D1D:
+	lentD=shape(D1D)[1];
+    else:
+	lentD=shape(D2D)[0]
+    IDD=Matrix.identity(lentD);
     HOM=HD*(PD*(IDD*LambdaD))
     if not HOM:
 	homCD[c]=HOM[:LambdaD.ncols()][:]
@@ -326,6 +335,6 @@ def Persistent_Homology_maps(k):
 
 # <codecell>
 
-inv_fil={(0,1):[{1},{2}],(0,2):[{1,2}],(1,1):[{3}],(1,2):[{2,3}],(2,2):[{1,3},{5,6},{5,3},{6,3}],(3,1):[{4},{5},{6}],(2,3):[{1,2,3}]}
+inv_fil={(0,1):[{1},{2}],(0,2):[{1,2}],(1,1):[{3}],(1,2):[{2,3}],(2,2):[{1,3},{5,6},{5,3},{6,3}],(2,1):[{4},{5},{6}],(2,3):[{1,2,3}], (3,1):[{7}]}
 #print inv_fil;
 #D=Persistent_Homology_maps(4)

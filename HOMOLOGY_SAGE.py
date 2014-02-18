@@ -326,7 +326,7 @@ def Persistent_Homology_maps(k):
 	lentD=shape(D2D)[0]
     IDD=Matrix.identity(lentD);
     HOM=HD*(PD*(IDD*LambdaD))
-    if not HOM:
+    if HOM:
 	homCD[c]=HOM[:LambdaD.ncols()][:]
     #print 'THIS IS THE LAST STEP\n HD\n',HD,'\n PD\n',PD,'\n IDD\n',IDD,'\n LambdaD \n',LambdaD
     del D1C,D2C,O1C,O2C,LapD,D1D,D2D,O1D,O2D,LambdaC

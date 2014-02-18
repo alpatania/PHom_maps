@@ -245,7 +245,7 @@ def H(LambdaD, BD, BBD,verbose=False):
 
 # <codecell>
 
-def Persistent_Homology_maps(k):
+def Persistent_Homology_maps(k,verbose=False):
     from numpy import zeros
     n=sorted(inv_fil.keys())[-1][0]
     homCD={}
@@ -325,7 +325,11 @@ def Persistent_Homology_maps(k):
     else:
 	lentD=shape(D2D)[0]
     IDD=Matrix.identity(lentD);
-    HOM=HD*(PD*(IDD*LambdaD))
+    try:
+    	HOM=HD*(PD*(IDD*LambdaD))
+    except UnboundLocalError: #local variable 'HD' referenced before assignment
+        del D1C,D2C,O1C,O2C,LapD,D1D,D2D,O1D,O2D,LambdaC
+	return homCD
     if HOM:
 	homCD[c]=HOM[:LambdaD.ncols()][:]
     #print 'THIS IS THE LAST STEP\n HD\n',HD,'\n PD\n',PD,'\n IDD\n',IDD,'\n LambdaD \n',LambdaD

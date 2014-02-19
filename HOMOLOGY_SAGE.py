@@ -1,26 +1,22 @@
 # -*- coding: utf-8 -*-
 # <nbformat>3.0</nbformat>
 
-# <codecell>
-
 import pickle
 import os, sys
 import pandas as pd
 from numpy import *
-# <codecell>
 
-#test_filtration='code/celegans_resolved_weighted_clique_filtration_100.pck';#sys.argv[1];
+# FILTRATION GIVEN BY THE USER, MUST BE A DICTIONARY WITH KEYS ALL THE SIMPLICES IN THE SIMPLICIAL COMPLEX AND AS VALUE THE STEP OF THE FILTRATION WHEN THEY ARE CREATED (AND A WEIGHT NOT NECESSARY)
+#test_filtration=sys.argv[1];
 #output_bm_file=sys.argv[2];
-#fil=pickle.load("/Users/alicepatania/Dropbox/quiver_resolution/data/celegans_resolved_weighted_clique_filtration_100.pck");
+#fil=pickle.load(test_filtration);
 
+# THE TEST FILTRATION IN THE C-ELEGANS
 f=open("/Users/alicepatania/Desktop/ISI/celegans_weighted_clique_filtration.pck",'rb');
 bin_data=f.read()
 fil=pickle.loads(bin_data);
 
-
-
-# <codecell>
-
+# FUNCTION CODIMENSION: GIVEN 2 SIMPLICES RETURNS 1 AND -1 IF THAT IS THAT IS THEIR CODIMENSION AND 0 OTHERWISE
 def codimension(simplex1,simplex2,verbose=False):
 
     if verbose==True:
@@ -31,45 +27,46 @@ def codimension(simplex1,simplex2,verbose=False):
         return -1;
     return 0;
 
+# FUNCTION: INVERTS THE DICTIONARY GIVEN SO THAT THE KEYS ARE COUPLES WHERE THE FIRST NUMBER IS THE FILTRATION STEP AND THE SECOND IS THE DIMENSION+1 OF THE SIMPLICES IN THE CORRESPONDING VALUE
+
 def invert_filtration_dictionary(fil):
     import ast
     inv_dict={};
     
-    for c in fil:
+    for c in fil: # TAKES A SIMPLEX IN THE KEYS OF FILTRATION
         try:
-            inv_dict[(int(fil[c][0]),len(set(ast.literal_eval(c))))].append(set(ast.literal_eval(c)));
-        except:
-            inv_dict[(int(fil[c][0]),len(set(ast.literal_eval(c))))]=[];
-            inv_dict[(int(fil[c][0]),len(set(ast.literal_eval(c))))].append(set(ast.literal_eval(c)));
+            inv_dict[(int(fil[c][0]),len(set(ast.literal_eval(c))))].append(set(ast.literal_eval(c))); # int(fil[c][0]) IS THE FILTRATION STEP WHERE c IS ADDED, AND len(set(ast.literal_eval(c)))) IS HIS LENGHT. IT LOCATES THIS KEY IN THE NEW FILTRATION DICTIONARY AND APPENDS THE SIMPLEX c TO THE VALUE.
+        except: # IF THE KEY DOESN'T ALREADY EXIST
+            inv_dict[(int(fil[c][0]),len(set(ast.literal_eval(c))))]=[]; # CREATES IT
+            inv_dict[(int(fil[c][0]),len(set(ast.literal_eval(c))))].append(set(ast.literal_eval(c))); # AND APPENDS THE SIMPLEX c TO THE VALUE.
     for l in inv_dict:
-        inv_dict[l]=sorted(inv_dict[l], key=lambda x: len(x));
+        inv_dict[l]=sorted(inv_dict[l], key=lambda x: len(x)); # SORTS THE KEYS FOR LENGHT (USEFUL?)
         
     return inv_dict;
 
-def sparse_boundary_matrix_zero(inv_dict,c,k,verbose=False):#c is the filtration step needed
+# FUNCTION SPARSE_BOUNDARY_MATRIX_ZERO: RETURNS THE kth-BOUNDARY MATRIX FOR THE SIMPLICIAL COMPLEX AT STEP c IN THE FILTRATION WHERE THE FIRST k-1-SIMPLEX IS ADDED TO THE FILTRATION (YOU DON'T NEED TO ADD THE PREVIOUS kth-BOUNDARY MATRIX)
+def sparse_boundary_matrix_zero(inv_dict,c,k,verbose=False): 
     
-    ordered_simplex_list=[];
-    Ord=[]
-    count=0;
+    ordered_simplex_list=[]; # THE LIST WITH ALL THE SIMPLICES IT NEEDS TO CHECK TO CREATE THE MATRIX
+    Ord=[] # LIST OF THE (k-1)-SIMPLICES THAT ARE IN THE SIMPLICIAL COMPLEX TO PASS TO THE NEXT STEP IN THE FILTRATION
     try:
-        ordered_simplex_list.extend(inv_dict[(c,k)]);
-        R=len(ordered_simplex_list);
-        Ord=list(ordered_simplex_list)#
+        ordered_simplex_list.extend(inv_dict[(c,k)]); # ADDS THE (k-1)-SIMPLICES ADDED AT STEP c TO THE LIST
+        R=len(ordered_simplex_list); # NUMBER OF ROWS IN THE MATRIX
+        Ord=list(ordered_simplex_list) # CREATES THE LIST TO BE RETURNED
 	#print 'here i am born %d'% c,Ord
     except KeyError:
-        return Matrix([]),[]
+        return Matrix([]),[] # IF THERE ARE NO (k-1)-SIMPLICES TO ADD, SINCE THERE WHERE NONE IN THE PREVIOUS STEPS EITHER IT RETURN AN EMPTY MATRIX AND AN EMPTY LIST
     try:
-        ordered_simplex_list.extend(inv_dict[(c,k+1)]);
-	#print 'here i am %d'% c,Ord
+        ordered_simplex_list.extend(inv_dict[(c,k+1)]);  # ADDS THE k-SIMPLICES ADDED AT STEP c TO THE LIST
     except KeyError:
-        return Matrix([]),Ord
-    C=len(ordered_simplex_list)-R;
-    ordered_simplex_series=pd.Series(ordered_simplex_list,index=range(len(ordered_simplex_list)));
+        return Matrix([]),Ord # IF THERE ARE NO k-SIMPLICES TO ADD, THE MATRIX HAS NO COLUMNS SO IT RETURNS AN EMPTY MATRIX AND THE LIST OF (k-1)-SIMPLICES ADDED AT THIS STEP
+    C=len(ordered_simplex_list)-R; # THE NUMBER OF COLUMNS IN THE MATRIX
+    ordered_simplex_series=pd.Series(ordered_simplex_list,index=range(len(ordered_simplex_list))); # CREATES A PANDAS.SERIES TO USE AS REFERENCE GUIDE WHEN CREATING THE MATRIX
     del ordered_simplex_list;
-    bm=zeros((R,C));
-    for i in ordered_simplex_series.index:
-        if len(ordered_simplex_series[i])==k:
-            for j in ordered_simplex_series.index[i:]:
+    bm=zeros((R,C)); # CREATES A ZERO MATRIX OF THE RIGHT DIMENSIONS
+    for i in ordered_simplex_series.index: # TAKES A NUMER IN THE RANGE
+        if len(ordered_simplex_series[i])==k: # IF THE CORRESPONDING SIMPLEX HAS DIMENSION k
+            for j in ordered_simplex_series.index[i:]: # FOR THE SIMPLICES AFTER THAT CHECKS THE CODIMENSION
                 cod=codimension(ordered_simplex_series[i], ordered_simplex_series[j]);
                 if cod==1:
 		    piu=list(ordered_simplex_series[j]-ordered_simplex_series[i])
@@ -169,12 +166,15 @@ def Laplacian(inv_fil,c,k,deltak=Matrix([]),Ord_k=[],deltak1=Matrix([]),Ord_k1=[
         if not Dk:
             return Matrix([]),Matrix([]),Matrix([]),[],[]
         else:
+	    print 'dk\n', Dk;
 	    Dk=Matrix(Dk)
             L=(Dk.transpose())*Dk
     else:
 	#print 'cosa fai? ecco il Laplaciano passo passo:\n D1\n',Dk,'\n la sua trasposta\n',Dk.transpose(),'\n la parte di D1\n',(Dk.transpose())*Dk,'\n la parte di D2:\n',Dk1*(Dk1.transpose());
 	Dk=Matrix(Dk)
 	Dk1=Matrix(Dk1)
+	print 'dk\n', Dk;
+	print 'dk1\n', Dk1;
         L=(Dk.transpose())*Dk+Dk1*(Dk1.transpose())
     if save_boundary==True:
         return L,Dk,Dk1,Ordk,Ordk1
@@ -188,11 +188,11 @@ def Proiettore(L):
     P=((L*invPP)*LT)
     return P
 
-# <codecell>
+
 
 inv_fil=invert_filtration_dictionary(fil)
 
-# <codecell>
+
 
 
 def right_kernel_space(L):
@@ -243,9 +243,9 @@ def H(LambdaD, BD, BBD,verbose=False):
         return BBD
     return M
 
-# <codecell>
 
-def Persistent_Homology_maps(k,verbose=False):
+
+def Persistent_Homology_maps(k,verbose=True):
     from numpy import zeros
     n=sorted(inv_fil.keys())[-1][0]
     homCD={}
@@ -274,7 +274,9 @@ def Persistent_Homology_maps(k,verbose=False):
 
 		BD=(Matrix(D2D)).column_space()
 		BD=(BD.basis_matrix()).transpose()
-
+		if verbose:
+		    print D2D
+		    print D1D
                 fuffa=(D1D).transpose()
                 BBD=(Matrix((fuffa))).column_space()
 		BBD=(BBD.basis_matrix()).transpose()
@@ -337,8 +339,8 @@ def Persistent_Homology_maps(k,verbose=False):
     print 'Done.' 
     return homCD
 
-# <codecell>
 
-inv_fil={(0,1):[{1},{2}],(0,2):[{1,2}],(1,1):[{3}],(1,2):[{2,3}],(2,2):[{1,3},{5,6},{5,3},{6,3}],(2,1):[{4},{5},{6}],(2,3):[{1,2,3}], (3,1):[{7}]}
+
+inv_fil={(0,1):[{1},{2}],(0,2):[{1,2}],(1,1):[{3}],(1,2):[{2,3}],(2,2):[{1,3},{5,6},{5,3},{6,3}],(2,1):[{4},{5},{6}],(2,3):[{1,2,3}], (3,1):[{7}],(3,2):[{7,5},{7,3},{7,6}],(3,3):[{7,5,3},{7,5,6},{7,3,6},{5,3,6}],(4,4):[{7,5,6,3}]}
 #print inv_fil;
 #D=Persistent_Homology_maps(4)

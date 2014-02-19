@@ -12,7 +12,7 @@ from numpy import *
 #fil=pickle.load(test_filtration);
 
 # THE TEST FILTRATION IN THE C-ELEGANS
-f=open("/Users/alicepatania/Desktop/ISI/celegans_weighted_clique_filtration.pck",'rb');
+f=open("/Users/alicepatania/homology_maps/celegans_nb_weighted_clique_filtration.pck",'rb');
 bin_data=f.read()
 fil=pickle.loads(bin_data);
 
@@ -55,10 +55,12 @@ def sparse_boundary_matrix_zero(inv_dict,c,k,verbose=False):
         Ord=list(ordered_simplex_list) # CREATES THE LIST TO BE RETURNED
 	#print 'here i am born %d'% c,Ord
     except KeyError:
-        return Matrix([]),[] # IF THERE ARE NO (k-1)-SIMPLICES TO ADD, SINCE THERE WHERE NONE IN THE PREVIOUS STEPS EITHER IT RETURN AN EMPTY MATRIX AND AN EMPTY LIST
+	#print 'ord sono al primo try',Ord
+        return Matrix([]),Ord # IF THERE ARE NO (k-1)-SIMPLICES TO ADD, SINCE THERE WHERE NONE IN THE PREVIOUS STEPS EITHER IT RETURN AN EMPTY MATRIX AND AN EMPTY LIST
     try:
         ordered_simplex_list.extend(inv_dict[(c,k+1)]);  # ADDS THE k-SIMPLICES ADDED AT STEP c TO THE LIST
     except KeyError:
+	#print 'ord sono al secondo try',Ord
         return Matrix([]),Ord # IF THERE ARE NO k-SIMPLICES TO ADD, THE MATRIX HAS NO COLUMNS SO IT RETURNS AN EMPTY MATRIX AND THE LIST OF (k-1)-SIMPLICES ADDED AT THIS STEP
     C=len(ordered_simplex_list)-R; # THE NUMBER OF COLUMNS IN THE MATRIX
     ordered_simplex_series=pd.Series(ordered_simplex_list,index=range(len(ordered_simplex_list))); # CREATES A PANDAS.SERIES TO USE AS REFERENCE GUIDE WHEN CREATING THE MATRIX
@@ -79,16 +81,16 @@ def sparse_boundary_matrix_zero(inv_dict,c,k,verbose=False):
                     if verbose==True:
                         print (i,j, cod,ordered_simplex_series[i], ordered_simplex_series[j]);
     bm= Matrix(bm);
+    #print 'sum col',[sum([x]) for x in bm.columns()]
+    #print 'ord sono alla fine',Ord
     return Matrix(bm),Ord
 
 def sparse_boundary_matrix(inv_dict,c,k,deltak=Matrix([]),ordered_ksimplex_list=[]):#where deltak is the kth boundary matrix of c-1
     if c==0:
         return sparse_boundary_matrix_zero(inv_dict,c,k,verbose=False)
-    elif not deltak:
-	print 'I have found that delta %d is empty' %k, deltak;
-	if not ordered_ksimplex_list:
-	   print 'I have found that there are no %d simplices'%(k-1),ordered_ksimplex_list;
-	   return sparse_boundary_matrix_zero(inv_dict,c,k,verbose=False)
+    elif not ordered_ksimplex_list:
+	print 'I have found that there are no %d simplices up to this step'%(k-1),ordered_ksimplex_list;
+	return sparse_boundary_matrix_zero(inv_dict,c,k,verbose=False)
     ordered_simplex_list=[];
     new=False;
     Ord=[]
@@ -101,7 +103,6 @@ def sparse_boundary_matrix(inv_dict,c,k,deltak=Matrix([]),ordered_ksimplex_list=
             D=Matrix(vstack([deltak, Matrix(zeros((R,shape(deltak)[1])))]))
 	    row_sum_D=[sum([x]) for x in D.rows()]
 	else:
-	    #print 'uso il numero a casaccio'
 	    row_sum_D=[0]*(len(Ord))
     except KeyError:
         R=0;
@@ -145,10 +146,11 @@ def sparse_boundary_matrix(inv_dict,c,k,deltak=Matrix([]),ordered_ksimplex_list=
         BM=hstack([D,bm]);
 	BM= Matrix(BM);
         del bm,D
+    #print [sum([x]) for x in BM.columns()]
     return Matrix(BM),Ord;
         
     
-def Laplacian(inv_fil,c,k,deltak=Matrix([]),Ord_k=[],deltak1=Matrix([]),Ord_k1=[],save_boundary=True):
+def Laplacian(inv_fil,c,k,deltak=Matrix([]),Ord_k=[],deltak1=Matrix([]),Ord_k1=[],save_boundary=True,verbose=False):
     if k==0:
 	Dk1,Ordk1=sparse_boundary_matrix(inv_fil,c,k+1,deltak1,Ord_k1)
 	print (c,k+1)
@@ -157,24 +159,25 @@ def Laplacian(inv_fil,c,k,deltak=Matrix([]),Ord_k=[],deltak1=Matrix([]),Ord_k1=[
 	   L=Dk1*(Dk1.transpose())
 	   return L,Matrix([]),Dk1,[],Ordk1
 	else:
-	   return Matrix([]),Matrix([]),Matrix([]),[],[]
+	   return Matrix([]),Matrix([]),Dk1,[],Dk1
     Dk,Ordk=sparse_boundary_matrix(inv_fil,c,k,deltak,Ord_k)
     print (c,k)
     Dk1,Ordk1=sparse_boundary_matrix(inv_fil,c,k+1,deltak1,Ord_k1)
     print (c,k+1) 
     if not Dk1:
         if not Dk:
-            return Matrix([]),Matrix([]),Matrix([]),[],[]
+            return Matrix([]),Dk,Dk1,Ordk,Ordk1
         else:
-	    print 'dk\n', Dk;
+	    if verbose:
+	    	print 'dk\n', Dk;
 	    Dk=Matrix(Dk)
             L=(Dk.transpose())*Dk
     else:
-	#print 'cosa fai? ecco il Laplaciano passo passo:\n D1\n',Dk,'\n la sua trasposta\n',Dk.transpose(),'\n la parte di D1\n',(Dk.transpose())*Dk,'\n la parte di D2:\n',Dk1*(Dk1.transpose());
 	Dk=Matrix(Dk)
 	Dk1=Matrix(Dk1)
-	print 'dk\n', Dk;
-	print 'dk1\n', Dk1;
+	if verbose:
+	    print 'dk\n', Dk;
+	    print 'dk1\n', Dk1;
         L=(Dk.transpose())*Dk+Dk1*(Dk1.transpose())
     if save_boundary==True:
         return L,Dk,Dk1,Ordk,Ordk1
@@ -245,7 +248,7 @@ def H(LambdaD, BD, BBD,verbose=False):
 
 
 
-def Persistent_Homology_maps(k,verbose=True):
+def Persistent_Homology_maps(k,verbose=False):
     from numpy import zeros
     n=sorted(inv_fil.keys())[-1][0]
     homCD={}
@@ -269,12 +272,14 @@ def Persistent_Homology_maps(k,verbose=True):
             else:
                 LambdaD=(Matrix(LapD)).kernel()
 		LambdaD=(Matrix(LambdaD.basis_matrix())).transpose()
-		print 'LambdaD',LambdaD;
+		if verbose:
+		    print 'LambdaD',LambdaD;
 		PD=Proiettore(LambdaD)
 
 		BD=(Matrix(D2D)).column_space()
 		BD=(BD.basis_matrix()).transpose()
 		if verbose:
+		    print 'Ord1',O1D,'\n Ord2',O2D;
 		    print D2D
 		    print D1D
                 fuffa=(D1D).transpose()
@@ -303,7 +308,7 @@ def Persistent_Homology_maps(k,verbose=True):
 		    print 'HD is square';
 		    HD=Matrix(HD).inverse()
 		else:
-                    print 'HD=LambdaD|BD|BBD',(LambdaD.nrows(),LambdaD.ncols()),(BD.nrows(),BD.ncols()),(D1D.nrows(),D1D.ncols()),(BBD.nrows(),BBD.ncols());
+                    print 'HD=LambdaD|BD|BBD',(LambdaD.nrows(),LambdaD.ncols()),(BD.nrows(),BD.ncols()),(BBD.nrows(),BBD.ncols());
                     raise ValueError ('ERROR HD NOT SQUARE')
 
 		if not LambdaC:
@@ -313,7 +318,8 @@ def Persistent_Homology_maps(k,verbose=True):
                	    if D2D!=0:
                     	D2C=D2D
 		else:
-		    print 'HD \n',HD,'\n PD \n',PD,'\n F1C\n', F1C,'\n LambdaC \n',LambdaC;
+		    if verbose:
+		    	print 'HD \n',HD,'\n PD \n',PD,'\n F1C\n', F1C,'\n LambdaC \n',LambdaC;
                     HOM=HD*(PD*(F1C*LambdaC))
 		    homCD[c-1]=HOM[:LambdaD.ncols()][:]
                     LambdaC=LambdaD
@@ -340,7 +346,5 @@ def Persistent_Homology_maps(k,verbose=True):
     return homCD
 
 
-
-inv_fil={(0,1):[{1},{2}],(0,2):[{1,2}],(1,1):[{3}],(1,2):[{2,3}],(2,2):[{1,3},{5,6},{5,3},{6,3}],(2,1):[{4},{5},{6}],(2,3):[{1,2,3}], (3,1):[{7}],(3,2):[{7,5},{7,3},{7,6}],(3,3):[{7,5,3},{7,5,6},{7,3,6},{5,3,6}],(4,4):[{7,5,6,3}]}
-#print inv_fil;
-#D=Persistent_Homology_maps(4)
+#print sorted(inv_fil.keys());
+#inv_fil={(0,1):[{1},{2}],(0,2):[{1,2}],(1,1):[{3}],(1,2):[{2,3}],(2,2):[{1,3},{5,6},{5,3},{6,3}],(2,1):[{4},{5},{6}],(2,3):[{1,2,3}], (3,1):[{7}],(3,2):[{7,5},{7,3},{7,6}],(3,3):[{7,5,3},{7,5,6},{7,3,6},{5,3,6}],(4,4):[{7,5,6,3}]}

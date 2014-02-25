@@ -56,12 +56,12 @@ def sparse_boundary_matrix_zero(inv_dict,c,k,verbose=False):
 	#print 'here i am born %d'% c,Ord
     except KeyError:
 	#print 'ord sono al primo try',Ord
-        return Matrix([]),Ord # IF THERE ARE NO (k-1)-SIMPLICES TO ADD, SINCE THERE WHERE NONE IN THE PREVIOUS STEPS EITHER IT RETURN AN EMPTY MATRIX AND AN EMPTY LIST
+        return Matrix(ZZ,[]),Ord # IF THERE ARE NO (k-1)-SIMPLICES TO ADD, SINCE THERE WHERE NONE IN THE PREVIOUS STEPS EITHER IT RETURN AN EMPTY MATRIX AND AN EMPTY LIST
     try:
         ordered_simplex_list.extend(inv_dict[(c,k+1)]);  # ADDS THE k-SIMPLICES ADDED AT STEP c TO THE LIST
     except KeyError:
 	#print 'ord sono al secondo try',Ord
-        return Matrix([]),Ord # IF THERE ARE NO k-SIMPLICES TO ADD, THE MATRIX HAS NO COLUMNS SO IT RETURNS AN EMPTY MATRIX AND THE LIST OF (k-1)-SIMPLICES ADDED AT THIS STEP
+        return Matrix(ZZ,[]),Ord # IF THERE ARE NO k-SIMPLICES TO ADD, THE MATRIX HAS NO COLUMNS SO IT RETURNS AN EMPTY MATRIX AND THE LIST OF (k-1)-SIMPLICES ADDED AT THIS STEP
     C=len(ordered_simplex_list)-R; # THE NUMBER OF COLUMNS IN THE MATRIX
     ordered_simplex_series=pd.Series(ordered_simplex_list,index=range(len(ordered_simplex_list))); # CREATES A PANDAS.SERIES TO USE AS REFERENCE GUIDE WHEN CREATING THE MATRIX
     del ordered_simplex_list;
@@ -80,12 +80,12 @@ def sparse_boundary_matrix_zero(inv_dict,c,k,verbose=False):
 			bm[i,j-R]=-1;
                     if verbose==True:
                         print (i,j, cod,ordered_simplex_series[i], ordered_simplex_series[j]);
-    bm= Matrix(bm);
+    bm= Matrix(ZZ,bm);
     #print 'sum col',[sum([x]) for x in bm.columns()]
     #print 'ord sono alla fine',Ord
-    return Matrix(bm),Ord
+    return Matrix(ZZ,bm),Ord
 
-def sparse_boundary_matrix(inv_dict,c,k,deltak=Matrix([]),ordered_ksimplex_list=[]):#where deltak is the kth boundary matrix of c-1
+def sparse_boundary_matrix(inv_dict,c,k,deltak=Matrix(ZZ,[]),ordered_ksimplex_list=[]):#where deltak is the kth boundary matrix of c-1
     if c==0:
         return sparse_boundary_matrix_zero(inv_dict,c,k,verbose=False)
     elif not ordered_ksimplex_list:
@@ -100,7 +100,7 @@ def sparse_boundary_matrix(inv_dict,c,k,deltak=Matrix([]),ordered_ksimplex_list=
         R=len(ordered_simplex_list);
         Ord.extend(ordered_simplex_list)
         if deltak:
-            D=Matrix(vstack([deltak, Matrix(zeros((R,shape(deltak)[1])))]))
+            D=Matrix(ZZ,vstack([deltak, Matrix(ZZ,zeros((R,shape(deltak)[1])))]))
 	    row_sum_D=[sum([x]) for x in D.rows()]
 	else:
 	    row_sum_D=[0]*(len(Ord))
@@ -116,9 +116,9 @@ def sparse_boundary_matrix(inv_dict,c,k,deltak=Matrix([]),ordered_ksimplex_list=
             new=True;
     except KeyError:
         if not deltak:
-            return Matrix([]),Ord
+            return Matrix(ZZ,[]),Ord
         else:
-            return Matrix(D),Ord
+            return Matrix(ZZ,D),Ord
     C=len(ordered_simplex_list)-R;
     ordered_ksimplex_list.extend(ordered_simplex_list)
     ordered_simplex_series=pd.Series(ordered_ksimplex_list,index=range(len(ordered_ksimplex_list)));
@@ -139,42 +139,42 @@ def sparse_boundary_matrix(inv_dict,c,k,deltak=Matrix([]),ordered_ksimplex_list=
 			bm[i,j-len(Ord)]=-1;
 		
     if new:
-	bm= Matrix(bm);
+	bm= Matrix(ZZ,bm);
         BM=bm;
         del bm
     else:
         BM=hstack([D,bm]);
-	BM= Matrix(BM);
+	BM= Matrix(ZZ,BM);
         del bm,D
     #print [sum([x]) for x in BM.columns()]
-    return Matrix(BM),Ord;
+    return Matrix(ZZ,BM),Ord;
         
     
-def Laplacian(inv_fil,c,k,deltak=Matrix([]),Ord_k=[],deltak1=Matrix([]),Ord_k1=[],save_boundary=True,verbose=False):
+def Laplacian(inv_fil,c,k,deltak=Matrix(ZZ,[]),Ord_k=[],deltak1=Matrix(ZZ,[]),Ord_k1=[],save_boundary=True,verbose=False):
     if k==0:
 	Dk1,Ordk1=sparse_boundary_matrix(inv_fil,c,k+1,deltak1,Ord_k1)
 	print (c,k+1)
 	if Dk1:
-	   Dk1=Matrix(Dk1); 
+	   Dk1=Matrix(ZZ,Dk1); 
 	   L=Dk1*(Dk1.transpose())
-	   return L,Matrix([]),Dk1,[],Ordk1
+	   return L,Matrix(ZZ,[]),Dk1,[],Ordk1
 	else:
-	   return Matrix([]),Matrix([]),Dk1,[],Dk1
+	   return Matrix(ZZ,[]),Matrix(ZZ,[]),Dk1,[],Dk1
     Dk,Ordk=sparse_boundary_matrix(inv_fil,c,k,deltak,Ord_k)
     print (c,k)
     Dk1,Ordk1=sparse_boundary_matrix(inv_fil,c,k+1,deltak1,Ord_k1)
     print (c,k+1) 
     if not Dk1:
         if not Dk:
-            return Matrix([]),Dk,Dk1,Ordk,Ordk1
+            return Matrix(ZZ,[]),Dk,Dk1,Ordk,Ordk1
         else:
 	    if verbose:
 	    	print 'dk\n', Dk;
-	    Dk=Matrix(Dk)
+	    Dk=Matrix(ZZ,Dk)
             L=(Dk.transpose())*Dk
     else:
-	Dk=Matrix(Dk)
-	Dk1=Matrix(Dk1)
+	Dk=Matrix(ZZ,Dk)
+	Dk1=Matrix(ZZ,Dk1)
 	if verbose:
 	    print 'dk\n', Dk;
 	    print 'dk1\n', Dk1;
@@ -200,23 +200,23 @@ inv_fil=invert_filtration_dictionary(fil)
 
 def right_kernel_space(L):
     if L==0:
-        return Matrix([])
+        return Matrix(ZZ,[])
     u, s, vh = scipy.linalg.svd(L)
     null_mask = (s <= eps)
     null_space = scipy.compress(null_mask, vh, axis=0)
     if null_space.any():
-        return  Matrix(null_space.transpose())
+        return  Matrix(ZZ,null_space.transpose())
     else:
-        return Matrix([])
+        return Matrix(ZZ,[])
 
 def column_space(L):
     #print('COLUMN SPACE - I am using toll:', eps)
     if L==0:
-        return Matrix([])
+        return Matrix(ZZ,[])
     u, s, vh = scipy.linalg.svd(L)
     column_mask = (s >= eps)
     column = scipy.compress(column_mask, u, axis=1)
-    return  Matrix(column)
+    return  Matrix(ZZ,column)
 
 def H(LambdaD, BD, BBD,verbose=False):
     k=[1,1,1]
@@ -253,37 +253,37 @@ def Persistent_Homology_maps(k,verbose=False):
     n=sorted(inv_fil.keys())[-1][0]
     homCD={}
     LapC,D1C,D2C,O1C,O2C=Laplacian(inv_fil,0,k)
-    LambdaC=( Matrix(LapC )).kernel()
+    LambdaC=( Matrix(ZZ,LapC )).kernel()
     LambdaC=LambdaC.basis_matrix()
-    LambdaC=(Matrix(LambdaC)).transpose()
+    LambdaC=(Matrix(ZZ,LambdaC)).transpose()
     del LapC
     for c in range(1,n+1):
         print c 
         LapD,D1D,D2D,O1D,O2D=Laplacian(inv_fil,c,k,D1C,O1C,D2C,O2C)
         if [LapD,D1D,D2D]!=[0,0,0]:
             if [D1C,D2C]==[0,0]:
-                LambdaD=(Matrix(LapD)).kernel()
+                LambdaD=(Matrix(ZZ,LapD)).kernel()
 		LambdaD=LambdaD.basis_matrix()
-                LambdaC=(Matrix(LambdaD)).transpose()
+                LambdaC=(Matrix(ZZ,LambdaD)).transpose()
 		print 'LambdaD con tutti 0',LambdaD;
                 D1C=D1D
                 if D2D!=0:
                     D2C=D2D
             else:
-                LambdaD=(Matrix(LapD)).kernel()
-		LambdaD=(Matrix(LambdaD.basis_matrix())).transpose()
+                LambdaD=(Matrix(ZZ,LapD)).kernel()
+		LambdaD=(Matrix(ZZ,LambdaD.basis_matrix())).transpose()
 		if verbose:
 		    print 'LambdaD',LambdaD;
 		PD=Proiettore(LambdaD)
 
-		BD=(Matrix(D2D)).column_space()
+		BD=(Matrix(ZZ,D2D)).column_space()
 		BD=(BD.basis_matrix()).transpose()
 		if verbose:
 		    print 'Ord1',O1D,'\n Ord2',O2D;
 		    print D2D
 		    print D1D
                 fuffa=(D1D).transpose()
-                BBD=(Matrix((fuffa))).column_space()
+                BBD=(Matrix(ZZ,(fuffa))).column_space()
 		BBD=(BBD.basis_matrix()).transpose()
 
 		if D1C:
@@ -298,21 +298,22 @@ def Persistent_Homology_maps(k,verbose=False):
                 if lentD>lentC:
 		   r=lentD-lentC
                    ZERO=zeros((r,lentC));
-                   F1C=Matrix(vstack([IDC,ZERO]));
+                   F1C=Matrix(ZZ,vstack([IDC,ZERO]));
                 else:
-                   F1C=Matrix(IDC);
+                   F1C=Matrix(ZZ,IDC);
 		    
                 HD=H(LambdaD,BD,BBD)
-		HD=Matrix(HD)
+		HD=Matrix(ZZ,HD)
 		if  HD.is_square():
 		    print 'HD is square';
-		    HD=Matrix(HD).inverse()
+		    HD=Matrix(ZZ,HD).inverse()
 		else:
                     print 'HD=LambdaD|BD|BBD',(LambdaD.nrows(),LambdaD.ncols()),(BD.nrows(),BD.ncols()),(BBD.nrows(),BBD.ncols());
+		    print BD
                     raise ValueError ('ERROR HD NOT SQUARE')
 
 		if not LambdaC:
-		    homCD[c-1]=Matrix([])
+		    homCD[c-1]=Matrix(ZZ,[])
 		    LambdaC=LambdaD
                     D1C=D1D
                	    if D2D!=0:
@@ -320,6 +321,7 @@ def Persistent_Homology_maps(k,verbose=False):
 		else:
 		    if verbose:
 		    	print 'HD \n',HD,'\n PD \n',PD,'\n F1C\n', F1C,'\n LambdaC \n',LambdaC;
+			
                     HOM=HD*(PD*(F1C*LambdaC))
 		    homCD[c-1]=HOM[:LambdaD.ncols()][:]
                     LambdaC=LambdaD
